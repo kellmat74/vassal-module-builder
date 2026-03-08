@@ -258,26 +258,67 @@ Common wargame patterns:
 - Documented complete component hierarchy
 - Cataloged all 44 traits with serialization IDs
 - Identified underused features (3.6-3.7)
-- Created architecture document (see docs/VASSAL_Engine_Deep_Dive_Phase0.docx)
+- Created architecture document (see docs/VASSAL_Engine_Deep_Dive_Phase0.md)
 
-### Phase 1: Foundation (CURRENT)
-1. Port SequenceEncoder to TypeScript
-2. Build Component Schema Registry (TypeScript interfaces)
-3. Implement .vmod generator (XML serializer + ZIP packager)
-4. Validate output in VASSAL Module Editor
+### Phase 1: Foundation ✅ COMPLETE
+1. Ported SequenceEncoder to TypeScript (41 tests, full escaping fidelity)
+2. Built XML serializer for buildFile.xml generation
+3. Implemented .vmod generator (ZIP packager with jszip)
+4. Created minimal module factory, validated output in VASSAL 3.7.20
+5. Help content documentation (concepts, components, traits, grids, expressions, best-practices)
 
-### Phase 2: Web UI
-- React wizard-style interface
+### Phase 2: Module Modder (CURRENT — primary product feature)
+The first user-facing feature: modify existing .vmod modules with enhancements.
+
+**Core Flow:**
+1. **Import** — User uploads a .vmod → parse buildFile.xml into ComponentNode tree
+2. **Analyze** — Compare module against best-practices checklist, surface smart suggestions
+3. **Modify** — Full add/modify/remove UI with dependency warnings
+4. **Save** — Output with mod indicator in filename + embedded mod-manifest.json
+
+**Smart Suggestions System:**
+- Detect what the module already has vs. what best-practice modules include
+- Surface actionable recommendations: "This module has no movement trails — add them?"
+- Rank suggestions by impact and ease of implementation
+
+**Mod Manifest (mod-manifest.json inside .vmod):**
+```json
+{
+  "basedOn": { "name": "Original Module", "version": "3.2" },
+  "modifiedBy": "Player Name",
+  "modifiedDate": "2026-03-08T...",
+  "toolVersion": "vassal-module-builder 0.1.0",
+  "changes": [
+    { "type": "added", "component": "Footprint", "target": "all movable prototypes" },
+    { "type": "modified", "component": "Zoomer", "detail": "added 150% zoom level" }
+  ]
+}
+```
+
+**Output Naming:** `OriginalName_v3.2_modded.vmod`
+
+**Distribution Guidance:** Personal use focus. Clear messaging about respecting original designers. Do not upload modded modules to vassalengine.org library without permission.
+
+**Sub-tasks:**
+1. .vmod reader/importer (XML parser → ComponentNode tree)
+2. Module analyzer (best-practices checklist engine)
+3. React UI for import → analyze → modify → save flow
+4. Trait injector (add traits to existing piece definitions/prototypes)
+5. Mod manifest generator
+6. Output packager (re-ZIP with modifications)
+
+### Phase 3: Module Builder from Scratch
+- React wizard-style interface for new modules
 - Menu-driven component/trait selection
-- Best-practice defaults and templates
+- Best-practice defaults and templates (leverages Phase 2 UI components)
 
-### Phase 3: Game Logic Templates
+### Phase 4: Game Logic Templates
 - Pre-built automation patterns (CRT, supply, reinforcements)
 - Common wargame type starters (hex, CDG, block, P2P)
 
-### Phase 4: Module Analysis
+### Phase 5: Module Analysis & Pattern Extraction
 - Download and analyze 10-20 high-quality modules
-- Extract patterns into templates
+- Extract patterns into templates and smart suggestion rules
 
 ---
 
