@@ -4,13 +4,15 @@
   "description": "Web-based menu-driven tool for creating VASSAL game engine modules (.vmod files)",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently -n server,vite -c blue,green \"npm run server\" \"vite\"",
+    "dev:vite": "vite",
     "build": "tsc && vite build",
     "server": "tsx src/server/index.ts",
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint src/",
-    "generate:vmod": "tsx src/core/cli.ts"
+    "generate:vmod": "tsx src/core/cli.ts",
+    "extract:modules": "tsx src/tools/extract-module-metadata.ts"
   },
   "keywords": [
     "vassal",
@@ -24,9 +26,15 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
     "@types/node": "^25.3.5",
+    "@vitejs/plugin-react": "^5.1.4",
+    "concurrently": "^9.2.1",
     "express": "^5.2.1",
     "jszip": "^3.10.1",
+    "multer": "^2.1.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
@@ -35,6 +43,7 @@
   "dependencies": {
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
+    "fast-xml-parser": "^5.4.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.1"
