@@ -1,0 +1,42 @@
+{
+  "name": "vassal-module-builder",
+  "version": "0.1.0",
+  "description": "Web-based menu-driven tool for creating VASSAL game engine modules (.vmod files)",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "server": "tsx src/server/index.ts",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "lint": "eslint src/",
+    "generate:vmod": "tsx src/core/cli.ts"
+  },
+  "keywords": [
+    "vassal",
+    "wargame",
+    "boardgame",
+    "module-builder",
+    "vmod"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.3.5",
+    "express": "^5.2.1",
+    "jszip": "^3.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.1",
+    "vitest": "^4.0.18"
+  },
+  "dependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "tailwindcss": "^4.2.1"
+  }
+}
