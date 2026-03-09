@@ -13,6 +13,8 @@ export interface ModuleMetadata {
   vassalVersion: string;
   description: string;
   dateSaved: string;
+  extra1: string;
+  extra2: string;
 }
 
 export interface VmodContents {
@@ -31,11 +33,13 @@ function parseModuledata(xml: string): ModuleMetadata {
   const data = parsed.data ?? parsed;
 
   return {
-    name: String(data.n ?? ''),
+    name: String(data.name ?? data.n ?? ''),
     version: String(data.version ?? ''),
     vassalVersion: String(data.VassalVersion ?? ''),
     description: String(data.description ?? ''),
     dateSaved: String(data.dateSaved ?? ''),
+    extra1: String(data.extra1 ?? ''),
+    extra2: String(data.extra2 ?? ''),
   };
 }
 

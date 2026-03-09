@@ -5,12 +5,17 @@
 
 import express from 'express';
 import multer from 'multer';
-import { readVmod } from '../core/vmod-reader.js';
+import crypto from 'crypto';
+import { readVmod, type VmodContents } from '../core/vmod-reader.js';
 import { writeModifiedVmod } from '../core/vmod-writer.js';
 import { analyzeModule } from '../core/module-analyzer.js';
 
 const app = express();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
+
+// In-memory store for uploaded module binary data (images, sounds, other files).
+// Keyed by a session ID returned to the client at upload time.
+const moduleStore = new Map<string, { images: VmodContents['images']; otherFiles: VmodContents['otherFiles'] }>();
 
 app.use(express.json({ limit: '100mb' }));
 
@@ -34,10 +39,16 @@ app.post('/api/upload', upload.single('module'), async (req, res) => {
     }
 
     const result = await readVmod(req.file.buffer);
+
+    // Store binary assets server-side, return a sessionId to the client
+    const sessionId = crypto.randomUUID();
+    moduleStore.set(sessionId, { images: result.images, otherFiles: result.otherFiles });
+
     res.json({
       componentTree: result.componentTree,
       moduledata: result.moduledata,
       imageList: Array.from(result.images.keys()),
+      sessionId,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Invalid .vmod file';
@@ -63,16 +74,35 @@ app.post('/api/analyze', (req, res) => {
 
 app.post('/api/download', async (req, res) => {
   try {
-    const { componentTree, moduledata, manifest, originalFilename } = req.body;
+    const { componentTree, moduledata, manifest, originalFilename, sessionId } = req.body;
     if (!componentTree || !moduledata) {
       res.status(400).json({ error: 'Missing componentTree or moduledata.' });
       return;
     }
 
+    // Retrieve stored binary assets from upload
+    const stored = sessionId ? moduleStore.get(sessionId) : undefined;
+    const images = stored?.images ?? new Map();
+    const otherFiles = stored?.otherFiles ?? new Map();
+
+    // Tag moduledata and root XML name with modded suffix
+    const moddedModuledata = {
+      ...moduledata,
+      version: `${moduledata.version} (modded)`,
+    };
+
+    // Also update the root componentTree name attribute to show modded in VASSAL title bar
+    if (componentTree.attributes?.name) {
+      componentTree.attributes.name = `${componentTree.attributes.name} (modded)`;
+    }
+
     const buffer = await writeModifiedVmod(
-      { componentTree, moduledata, images: new Map(), otherFiles: new Map() },
+      { componentTree, moduledata: moddedModuledata, images, otherFiles },
       manifest,
     );
+
+    // Clean up stored data after download
+    if (sessionId) moduleStore.delete(sessionId);
     const baseName = (originalFilename ?? 'module.vmod').replace(/\.vmod$/i, '');
     const outName = `${baseName}_modded.vmod`;
 

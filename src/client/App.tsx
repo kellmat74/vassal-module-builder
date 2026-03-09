@@ -2,35 +2,33 @@ import { useReducer, useCallback } from 'react';
 import { FileUpload } from './components/FileUpload.js';
 import { ModuleTree } from './components/ModuleTree.js';
 import { NodeDetail } from './components/NodeDetail.js';
-import { SuggestionsPanel } from './components/SuggestionsPanel.js';
+import { FeatureCatalog } from './components/FeatureCatalog.js';
 import type { ComponentNode } from '../core/xml-serializer.js';
-import type { Suggestion } from '../core/module-analyzer.js';
+import type { CatalogFeature } from '../schema/feature-catalog.js';
 
 interface ModuleState {
   componentTree: ComponentNode | null;
-  moduledata: { name: string; version: string; vassalVersion: string; description: string } | null;
+  moduledata: { name: string; version: string; vassalVersion: string; description: string; extra1: string; extra2: string } | null;
   imageList: string[];
   selectedPath: number[] | null;
-  suggestions: Suggestion[];
   filename: string | null;
+  sessionId: string | null;
+  changes: { featureId: string; featureName: string }[];
 }
 
 type Action =
-  | { type: 'LOAD_MODULE'; payload: { componentTree: ComponentNode; moduledata: ModuleState['moduledata']; imageList: string[]; filename: string } }
+  | { type: 'LOAD_MODULE'; payload: { componentTree: ComponentNode; moduledata: ModuleState['moduledata']; imageList: string[]; filename: string; sessionId: string } }
   | { type: 'SELECT_NODE'; path: number[] | null }
-  | { type: 'SET_SUGGESTIONS'; suggestions: Suggestion[] }
-  | { type: 'UPDATE_TREE'; tree: ComponentNode };
+  | { type: 'UPDATE_TREE'; tree: ComponentNode; change: { featureId: string; featureName: string } };
 
 function reducer(state: ModuleState, action: Action): ModuleState {
   switch (action.type) {
     case 'LOAD_MODULE':
-      return { ...state, ...action.payload, selectedPath: null, suggestions: [] };
+      return { ...state, ...action.payload, selectedPath: null, changes: [] };
     case 'SELECT_NODE':
       return { ...state, selectedPath: action.path };
-    case 'SET_SUGGESTIONS':
-      return { ...state, suggestions: action.suggestions };
     case 'UPDATE_TREE':
-      return { ...state, componentTree: action.tree };
+      return { ...state, componentTree: action.tree, changes: [...state.changes, action.change] };
     default:
       return state;
   }
@@ -41,8 +39,9 @@ const initialState: ModuleState = {
   moduledata: null,
   imageList: [],
   selectedPath: null,
-  suggestions: [],
   filename: null,
+  sessionId: null,
+  changes: [],
 };
 
 function getNodeAtPath(tree: ComponentNode, path: number[]): ComponentNode | null {
@@ -52,6 +51,39 @@ function getNodeAtPath(tree: ComponentNode, path: number[]): ComponentNode | nul
     node = node.children[idx];
   }
   return node;
+}
+
+/** Deep clone a ComponentNode tree (immutable update) */
+function cloneTree(node: ComponentNode): ComponentNode {
+  return {
+    tag: node.tag,
+    attributes: { ...node.attributes },
+    children: node.children.map(cloneTree),
+    ...(node.textContent !== undefined ? { textContent: node.textContent } : {}),
+  };
+}
+
+/** Add a child node to a specific target in the tree */
+function addChildToNode(tree: ComponentNode, child: ComponentNode, targetTag?: string): ComponentNode {
+  const newTree = cloneTree(tree);
+  if (!targetTag) {
+    // Add to root
+    newTree.children.push(child);
+    return newTree;
+  }
+  // Find first matching descendant and add as child
+  const stack: ComponentNode[] = [newTree];
+  while (stack.length) {
+    const current = stack.pop()!;
+    if (current.tag === targetTag || current.tag.endsWith(`.${targetTag}`)) {
+      current.children.push(child);
+      return newTree;
+    }
+    for (const c of current.children) stack.push(c);
+  }
+  // Fallback: add to root
+  newTree.children.push(child);
+  return newTree;
 }
 
 export function App() {
@@ -71,20 +103,50 @@ export function App() {
     const data = await res.json();
     dispatch({
       type: 'LOAD_MODULE',
-      payload: { componentTree: data.componentTree, moduledata: data.moduledata, imageList: data.imageList ?? [], filename: file.name },
+      payload: { componentTree: data.componentTree, moduledata: data.moduledata, imageList: data.imageList ?? [], filename: file.name, sessionId: data.sessionId },
     });
-
-    // Auto-analyze
-    const analyzeRes = await fetch('/api/analyze', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ componentTree: data.componentTree }),
-    });
-    if (analyzeRes.ok) {
-      const { suggestions } = await analyzeRes.json();
-      dispatch({ type: 'SET_SUGGESTIONS', suggestions });
-    }
   }, []);
+
+  const handleAddFeature = useCallback((feature: CatalogFeature, params: Record<string, string | number | boolean>) => {
+    if (!state.componentTree) return;
+
+    const template = feature.buildTemplate(params);
+
+    let newTree = state.componentTree;
+
+    if (typeof template === 'string') {
+      // Trait string — need to inject into prototypes (future: let user pick which ones)
+      // For now, show what would be added
+      alert(`Trait injection coming soon!\n\nWould add to prototypes:\n${template}`);
+      return;
+    }
+
+    // Component node — add based on target
+    if (feature.target === 'module') {
+      newTree = addChildToNode(newTree, template);
+    } else if (feature.target === 'each-map' || feature.target === 'first-map') {
+      const clone = cloneTree(newTree);
+      let added = false;
+      for (const child of clone.children) {
+        if (child.tag === 'VASSAL.build.module.Map') {
+          child.children.push({ ...template, children: [...template.children] });
+          added = true;
+          if (feature.target === 'first-map') break;
+        }
+      }
+      if (!added) {
+        // No maps found, add to root as fallback
+        clone.children.push(template);
+      }
+      newTree = clone;
+    }
+
+    dispatch({
+      type: 'UPDATE_TREE',
+      tree: newTree,
+      change: { featureId: feature.id, featureName: feature.name },
+    });
+  }, [state.componentTree]);
 
   const handleDownload = useCallback(async () => {
     if (!state.componentTree || !state.moduledata) return;
@@ -99,9 +161,10 @@ export function App() {
           modifiedBy: 'VASSAL Module Builder',
           modifiedDate: new Date().toISOString(),
           toolVersion: '0.1.0',
-          changes: [],
+          changes: state.changes.map(c => ({ type: 'added', component: c.featureName, description: `Added ${c.featureName}` })),
         },
         originalFilename: state.filename,
+        sessionId: state.sessionId,
       }),
     });
     if (!res.ok) { alert('Download failed'); return; }
@@ -118,7 +181,6 @@ export function App() {
     ? getNodeAtPath(state.componentTree, state.selectedPath)
     : null;
 
-  // Prevent browser default drop behavior (downloading the file) everywhere
   const onDragOver = (e: React.DragEvent) => e.preventDefault();
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -136,6 +198,11 @@ export function App() {
             {state.moduledata.name} v{state.moduledata.version}
           </span>
         )}
+        {state.changes.length > 0 && (
+          <span className="text-xs text-amber-500">
+            {state.changes.length} change{state.changes.length !== 1 ? 's' : ''} pending
+          </span>
+        )}
         <div className="ml-auto flex gap-2">
           {!state.componentTree && <FileUpload onUpload={handleUpload} />}
           {state.componentTree && (
@@ -143,9 +210,13 @@ export function App() {
               <FileUpload onUpload={handleUpload} />
               <button
                 onClick={handleDownload}
-                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-sm rounded font-medium"
+                className={`px-3 py-1.5 text-white text-sm rounded font-medium ${
+                  state.changes.length > 0
+                    ? 'bg-amber-600 hover:bg-amber-500'
+                    : 'bg-gray-700 hover:bg-gray-600'
+                }`}
               >
-                Save Modded .vmod
+                Save Modded .vmod{state.changes.length > 0 ? ` (${state.changes.length})` : ''}
               </button>
             </>
           )}
@@ -180,9 +251,9 @@ export function App() {
             )}
           </div>
 
-          {/* Right: Suggestions */}
-          <div className="w-1/4 border-l border-gray-800 overflow-y-auto p-2">
-            <SuggestionsPanel suggestions={state.suggestions} />
+          {/* Right: Feature Catalog */}
+          <div className="w-1/4 border-l border-gray-800 p-2">
+            <FeatureCatalog tree={state.componentTree} onAddFeature={handleAddFeature} addedFeatureIds={state.changes.map(c => c.featureId)} />
           </div>
         </div>
       )}

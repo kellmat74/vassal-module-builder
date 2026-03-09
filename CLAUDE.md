@@ -306,6 +306,9 @@ The first user-facing feature: modify existing .vmod modules with enhancements.
 4. Trait injector (add traits to existing piece definitions/prototypes)
 5. Mod manifest generator
 6. Output packager (re-ZIP with modifications)
+7. In-module "Mod Settings" toolbar — inject a settings button into modded modules so users can adjust configurable feature params (e.g. minimap scale) at runtime without re-modding. Use GlobalProperty + DoActionButton.
+8. Toolbar Button Config UI — visual editor for toolbar button order, icon upload, and sizing. Addresses issues with injected buttons (e.g. minimap) appearing too small or overlapping existing buttons. Should allow reordering, custom icons, and consistent sizing across all toolbar items.
+9. Auto-tag pieces from PieceWindow structure — Walk the PieceWindow widget tree (TabWidget/PanelWidget/ListWidget nesting) and infer Marker traits from entryName attributes (e.g. "Russians" → mark;Side;RU, "1 MR BTG" → mark;Formation;1 MR BTG). Inject mark; traits into each PieceSlot so the Inventory window can group by Side/Formation/UnitType. Prerequisite for making Inventory useful on modules that lack Marker traits (which is most of them).
 
 ### Phase 3: Module Builder from Scratch
 - React wizard-style interface for new modules

@@ -24,15 +24,17 @@ function escapeXml(str: string): string {
 }
 
 function generateModuledata(metadata: ModuleMetadata): string {
+  const extra1 = metadata.extra1 ? `<extra1>${escapeXml(metadata.extra1)}</extra1>` : '<extra1/>';
+  const extra2 = metadata.extra2 ? `<extra2>${escapeXml(metadata.extra2)}</extra2>` : '<extra2/>';
   return `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <data version="1">
   <version>${escapeXml(metadata.version)}</version>
-  <extra1/>
-  <extra2/>
+  ${extra1}
+  ${extra2}
   <VassalVersion>${escapeXml(metadata.vassalVersion)}</VassalVersion>
   <dateSaved>${Date.now()}</dateSaved>
   <description>${escapeXml(metadata.description)}</description>
-  <n>${escapeXml(metadata.name)}</n>
+  <name>${escapeXml(metadata.name)}</name>
 </data>
 `;
 }
