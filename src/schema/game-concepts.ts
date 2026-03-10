@@ -58,7 +58,7 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     name: 'movement',
     category: 'movement',
     description: 'Top-level: all movement-related concepts',
-    children: ['movement-tracking', 'movement-trails', 'send-to-location', 'return-to-deck', 'movement-restriction'],
+    children: ['movement-tracking', 'movement-trails', 'send-to-location', 'return-to-deck', 'movement-restriction', 'piece-spawning'],
   },
   {
     name: 'movement-tracking',
@@ -85,13 +85,18 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     category: 'movement',
     description: 'Prevent or limit piece movement (immobilized, restricted access)',
   },
+  {
+    name: 'piece-spawning',
+    category: 'movement',
+    description: 'Create new pieces on the map from existing pieces (PlaceMarker, Clone)',
+  },
 
   // ═══ COMBAT ═══
   {
     name: 'combat',
     category: 'combat',
     description: 'Top-level: all combat-related concepts',
-    children: ['combat-resolution', 'step-reduction', 'elimination', 'odds-calculation'],
+    children: ['combat-resolution', 'step-reduction', 'elimination', 'odds-calculation', 'dice-rolling'],
   },
   {
     name: 'combat-resolution',
@@ -112,6 +117,11 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     name: 'odds-calculation',
     category: 'combat',
     description: 'Automatically compute combat odds from attacker/defender strengths',
+  },
+  {
+    name: 'dice-rolling',
+    category: 'combat',
+    description: 'Dice buttons and random number generation for combat resolution and events',
   },
 
   // ═══ VISIBILITY ═══
@@ -198,7 +208,7 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     name: 'turn-structure',
     category: 'turn',
     description: 'Top-level: game turn and phase management',
-    children: ['igo-ugo-turns', 'impulse-turns', 'card-driven-activation', 'random-events'],
+    children: ['igo-ugo-turns', 'impulse-turns', 'card-driven-activation', 'random-events', 'deck-management', 'scenario-setup'],
   },
   {
     name: 'igo-ugo-turns',
@@ -220,13 +230,23 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     category: 'turn',
     description: 'Random event tables or card draws during a turn',
   },
+  {
+    name: 'deck-management',
+    category: 'turn',
+    description: 'Draw piles, discard piles, and card cycling mechanics (DrawPile + ReturnToDeck)',
+  },
+  {
+    name: 'scenario-setup',
+    category: 'turn',
+    description: 'Predefined game setups and scenario selection at game start',
+  },
 
   // ═══ ORGANIZATION ═══
   {
     name: 'organization',
     category: 'organization',
     description: 'Top-level: organizing pieces and access',
-    children: ['side-based-access', 'force-organization', 'reinforcement-scheduling'],
+    children: ['side-based-access', 'force-organization', 'reinforcement-scheduling', 'mat-cargo-grouping', 'attachment-binding', 'sub-menu-organization'],
   },
   {
     name: 'side-based-access',
@@ -243,13 +263,28 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     category: 'organization',
     description: 'Manage reinforcement pools, entry timing, and placement',
   },
+  {
+    name: 'mat-cargo-grouping',
+    category: 'organization',
+    description: 'Physical piece grouping via Mat/MatCargo traits (3.6) — carriers, transports, formations on a surface',
+  },
+  {
+    name: 'attachment-binding',
+    category: 'organization',
+    description: 'Logical piece binding via Attachment trait (3.7) — HQ→subordinates, leader→stack targeting',
+  },
+  {
+    name: 'sub-menu-organization',
+    category: 'organization',
+    description: 'Organize piece right-click commands into nested sub-menus for cleaner UI',
+  },
 
   // ═══ AUTOMATION ═══
   {
     name: 'automation',
     category: 'automation',
     description: 'Top-level: automating game operations',
-    children: ['auto-reporting', 'triggered-actions', 'global-commands', 'calculated-properties'],
+    children: ['auto-reporting', 'triggered-actions', 'global-commands', 'calculated-properties', 'solitaire-automation'],
   },
   {
     name: 'auto-reporting',
@@ -270,6 +305,11 @@ export const gameConceptSeeds: GameConceptSeed[] = [
     name: 'calculated-properties',
     category: 'automation',
     description: 'Auto-compute values from piece or game state (formulas)',
+  },
+  {
+    name: 'solitaire-automation',
+    category: 'automation',
+    description: 'Complex TriggerAction chains that automate opponent behavior for solo play (avg 1,800+ triggers in top solitaire modules)',
   },
 
   // ═══ MAP FEATURES ═══
@@ -502,9 +542,9 @@ export const implementationPatternSeeds: ImplementationPatternSeed[] = [
   {
     concept: 'unit-status',
     pattern_name: 'dynprop-status',
-    description: 'DynamicProperty for tracking status changes',
+    description: 'DynamicProperty alone for status tracking (no automation backing — consider dynprop-with-trigger instead)',
     signature: { all_of: [{ trait_exists: 'DYNPROP' }] },
-    quality_score: 3,
+    quality_score: 2,
   },
 
   // ═══ ACTIVATION MARKING ═══
@@ -664,6 +704,153 @@ export const implementationPatternSeeds: ImplementationPatternSeed[] = [
     pattern_name: 'setprop-global',
     description: 'SetGlobalProperty trait for updating game-wide computed state',
     signature: { all_of: [{ trait_exists: 'setprop' }] },
+    quality_score: 4,
+  },
+
+  // ═══ DICE ROLLING (corpus: 763 Random() expressions) ═══
+  {
+    concept: 'dice-rolling',
+    pattern_name: 'dice-button',
+    description: 'Module-level DiceButton component for toolbar dice rolling',
+    signature: { all_of: [{ component_exists: 'DiceButton' }] },
+    quality_score: 5,
+  },
+  {
+    concept: 'dice-rolling',
+    pattern_name: 'symbolic-dice',
+    description: 'SpecialDiceButton with custom die face images',
+    signature: { all_of: [{ component_exists: 'SpecialDiceButton' }] },
+    quality_score: 5,
+  },
+
+  // ═══ PIECE SPAWNING (Team 1: archetype #14, 1.3%) ═══
+  {
+    concept: 'piece-spawning',
+    pattern_name: 'placemark-spawn',
+    description: 'PlaceMarker trait to spawn new pieces from existing ones (markers, reinforcements)',
+    signature: { all_of: [{ trait_exists: 'placemark' }] },
+    quality_score: 5,
+  },
+  {
+    concept: 'piece-spawning',
+    pattern_name: 'clone-piece',
+    description: 'Clone trait to duplicate a piece in place',
+    signature: { all_of: [{ trait_exists: 'clone' }] },
+    quality_score: 3,
+  },
+
+  // ═══ DECK MANAGEMENT (Team 3: card-driven distinctive pattern) ═══
+  {
+    concept: 'deck-management',
+    pattern_name: 'drawpile-deck',
+    description: 'DrawPile component for card draw mechanics',
+    signature: { all_of: [{ component_exists: 'DrawPile' }] },
+    quality_score: 5,
+  },
+  {
+    concept: 'deck-management',
+    pattern_name: 'return-to-hand',
+    description: 'ReturnToDeck trait for cycling cards back to hand/deck (82% adoption in card-driven games)',
+    signature: { all_of: [{ trait_exists: 'returnToDeck' }] },
+    quality_score: 5,
+  },
+
+  // ═══ MAT/CARGO GROUPING (Team 1: 66 prototypes, VASSAL 3.6) ═══
+  {
+    concept: 'mat-cargo-grouping',
+    pattern_name: 'mat-surface',
+    description: 'Mat + MatCargo traits for physical piece grouping (carriers, transports). VASSAL 3.6+ feature.',
+    signature: {
+      all_of: [{ trait_exists: 'mat' }],
+      any_of: [{ trait_exists: 'matCargo' }],
+    },
+    quality_score: 5,
+  },
+
+  // ═══ ATTACHMENT BINDING (Team 1: near-zero adoption, VASSAL 3.7) ═══
+  {
+    concept: 'attachment-binding',
+    pattern_name: 'attachment-logical-binding',
+    description: 'Attachment trait for logical piece-to-piece binding (3.7). Enables targeted GKCs to bound pieces.',
+    signature: { all_of: [{ trait_exists: 'attachment' }] },
+    quality_score: 5,
+  },
+
+  // ═══ SCENARIO SETUP (46% prevalence) ═══
+  {
+    concept: 'scenario-setup',
+    pattern_name: 'predefined-setup',
+    description: 'PredefinedSetup component for saved game states as scenario starters',
+    signature: { all_of: [{ component_exists: 'PredefinedSetup' }] },
+    quality_score: 5,
+  },
+
+  // ═══ SOLITAIRE AUTOMATION (Team 2: top trigger modules are solitaire) ═══
+  {
+    concept: 'solitaire-automation',
+    pattern_name: 'trigger-chain-automation',
+    description: 'Deep TriggerAction chains (100+ triggers) automating opponent behavior. Found in Western Front Ace (2,759), Fields of Fire (2,090).',
+    signature: {
+      all_of: [
+        { trait_exists: 'macro' },
+        { trait_exists: 'globalkey' },
+        { trait_exists: 'DYNPROP' },
+      ],
+    },
+    quality_score: 5,
+  },
+
+  // ═══ SUB-MENU ORGANIZATION (Team 1: top-20 archetype) ═══
+  {
+    concept: 'sub-menu-organization',
+    pattern_name: 'submenu-command-org',
+    description: 'SubMenu trait to nest commands into organized groups on the right-click menu',
+    signature: { all_of: [{ trait_exists: 'submenu' }] },
+    quality_score: 4,
+  },
+
+  // ═══ ADDITIONAL PATTERNS FROM CORPUS (Team 1 archetypes + Team 4 quality) ═══
+  {
+    concept: 'unit-status',
+    pattern_name: 'dynprop-with-trigger',
+    description: 'DynamicProperty backed by TriggerAction for automated state changes (Team 1 archetype #3)',
+    signature: {
+      all_of: [
+        { trait_exists: 'DYNPROP' },
+        { trait_exists: 'macro' },
+      ],
+    },
+    quality_score: 5,
+  },
+  {
+    concept: 'unit-status',
+    pattern_name: 'emb2-multi-layer-status',
+    description: 'Multiple Embellishment layers for rich visual state display (Team 1 archetype #2)',
+    signature: {
+      all_of: [
+        { trait_exists: 'emb2' },
+        { trait_exists: 'mark' },
+      ],
+    },
+    quality_score: 4,
+  },
+  {
+    concept: 'piece-info-overlay',
+    pattern_name: 'label-calculated-display',
+    description: 'Labeler + CalculatedProperty combo for dynamic text display on pieces',
+    signature: {
+      all_of: [
+        { trait_exists: 'label' },
+        { trait_exists: 'calcProp' },
+      ],
+    },
+    quality_score: 5,
+  },
+  {
+    concept: 'side-based-access',
+    pattern_name: 'restrict-commands-conditional',
+    description: 'RestrictCommands trait for conditionally hiding commands based on game state',
+    signature: { all_of: [{ trait_exists: 'restrictCommands' }] },
     quality_score: 4,
   },
 ];

@@ -212,7 +212,7 @@ export const featureCatalog: CatalogFeature[] = [
     description: 'Draw a line between two hexes to check line of sight. Shows range in hexes.',
     category: 'map-enhancement',
     target: 'first-map',
-    applicableTo: ['tactical', 'hex-and-counter'],
+    applicableTo: ['tactical', 'hex-and-counter', 'operational'],
     prevalence: 51,
     detectTags: ['VASSAL.build.module.map.LOS_Thread'],
     buildTemplate: () => ({
@@ -494,7 +494,7 @@ export const featureCatalog: CatalogFeature[] = [
     description: 'A private window for holding cards, visible only to the owning player. Essential for card-driven games.',
     category: 'multiplayer',
     target: 'module',
-    applicableTo: ['card-driven'],
+    applicableTo: ['card-driven', 'any'],
     prevalence: 5,
     detectTags: ['VASSAL.build.module.PlayerHand'],
     buildTemplate: () => ({
@@ -532,6 +532,137 @@ export const featureCatalog: CatalogFeature[] = [
       },
       children: [],
     }),
+  },
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CORPUS-DISCOVERED FEATURES (from 562-module analysis, March 2026)
+  // ═══════════════════════════════════════════════════════════════════════
+
+  {
+    id: 'report-state',
+    name: 'Auto-Report to Chat',
+    description: 'Automatically logs piece actions (move, flip, delete) to the chat window so opponents can see what changed.',
+    longDescription: 'ReportState is the #1 missing feature across the entire corpus — only 18% of prototypes include it. ' +
+      '40% of modules have completely silent state changes. Even top-20 quality modules only achieve ~70% coverage. ' +
+      'This is the single highest-impact feature the Module Modder can inject.',
+    category: 'piece-enhancement',
+    target: 'prototypes',
+    applicableTo: ['any'],
+    prevalence: 18,
+    detectTraitId: 'report',
+    params: [
+      { id: 'reportFormat', label: 'Report Format', description: 'Message format using $PropertyName$ variables', type: 'string', default: '* $PlayerName$ moves $PieceName$ to $LocationName$ *' },
+    ],
+    buildTemplate: (p) => `report;${p.reportFormat ?? '* $PlayerName$ moves $PieceName$ to $LocationName$ *'};M`,
+  },
+
+  {
+    id: 'movement-trails-clear-gkc',
+    name: 'Clear Movement Trails (GKC)',
+    description: 'A toolbar button that clears all movement trails at once. Pairs with the Footprint trait — use at end of turn.',
+    category: 'map-enhancement',
+    target: 'first-map',
+    applicableTo: ['hex-and-counter', 'tactical', 'operational'],
+    prevalence: 15,
+    detectTags: ['VASSAL.build.module.map.MassKeyCommand'],
+    params: [
+      { id: 'buttonText', label: 'Button Text', description: 'Toolbar button label', type: 'string', default: 'Clear Trails' },
+    ],
+    buildTemplate: (p) => ({
+      tag: 'VASSAL.build.module.map.MassKeyCommand',
+      attributes: {
+        name: String(p.buttonText ?? 'Clear Trails'),
+        buttonText: String(p.buttonText ?? 'Clear Trails'),
+        tooltip: 'Clear all movement trails',
+        hotkey: '',
+        keystroke: '75,520',  // Alt+K (clear footprints)
+        filter: '{footprint_Active == "true"}',
+        target: 'Apply to all pieces on this map',
+      },
+      children: [],
+    }),
+  },
+
+  {
+    id: 'area-of-effect',
+    name: 'Zone of Control / Range Circle',
+    description: 'Draws a colored circle or area around a piece to show its zone of control, firing range, or influence area.',
+    longDescription: 'AreaOfEffect is 2.1x more common in hex-and-counter games than in other types. ' +
+      'Useful for showing ZOC, artillery range, command radius, or supply range visually on the map.',
+    category: 'piece-enhancement',
+    target: 'prototypes',
+    applicableTo: ['hex-and-counter', 'tactical'],
+    prevalence: 12,
+    detectTraitId: 'AreaOfEffect',
+    params: [
+      { id: 'radius', label: 'Radius (pixels)', description: 'Circle radius in pixels', type: 'number', default: 100, min: 20, max: 500 },
+      { id: 'color', label: 'Fill Color', description: 'Circle fill color (R,G,B)', type: 'string', default: '255,0,0' },
+      { id: 'opacity', label: 'Opacity (%)', description: 'Fill transparency', type: 'number', default: 25, min: 5, max: 100 },
+    ],
+    buildTemplate: (p) => `AreaOfEffect;${p.color ?? '255,0,0'};${p.opacity ?? 25};${p.radius ?? 100};ZOC;true;65,520;false;;`,
+  },
+
+  {
+    id: 'calculated-property',
+    name: 'Calculated Property (Formula)',
+    description: 'Auto-computed value from piece or game state using BeanShell expressions. Only 10.7% of modules use this.',
+    longDescription: 'CalculatedProperty is one of the most powerful but underused VASSAL features. ' +
+      'It can compute combat factors, supply status, stacking limits, or any derived value. ' +
+      'Only 60 modules in the entire 562-module corpus use it at all.',
+    category: 'piece-enhancement',
+    target: 'prototypes',
+    applicableTo: ['any'],
+    prevalence: 11,
+    detectTraitId: 'calcProp',
+    params: [
+      { id: 'name', label: 'Property Name', description: 'Name for the calculated property', type: 'string', default: 'CombatValue' },
+      { id: 'expression', label: 'Expression', description: 'BeanShell expression (e.g., {Attack + Defense})', type: 'string', default: '{GetProperty("Attack") + GetProperty("Defense")}' },
+    ],
+    buildTemplate: (p) => `calcProp;${p.name ?? 'CombatValue'};${p.expression ?? '{GetProperty("Attack") + GetProperty("Defense")}'}`,
+  },
+
+  {
+    id: 'scenario-property',
+    name: 'Scenario Properties (3.7)',
+    description: 'Configurable properties set at game start via dialog. Perfect for variant rules, optional rules, and scenario settings.',
+    longDescription: 'A VASSAL 3.7 feature with near-zero adoption. Lets designers define properties that players configure ' +
+      'when starting a new game — weather rules on/off, scenario variants, house rules, etc. Far superior to ' +
+      'the old approach of using GlobalProperties with manual editing.',
+    category: 'advanced',
+    target: 'module',
+    applicableTo: ['any'],
+    prevalence: 2,
+    vassalVersionRequired: '3.7',
+    detectTags: ['VASSAL.build.module.properties.ScenarioPropertiesOptionTab'],
+    params: [
+      { id: 'tabName', label: 'Tab Name', description: 'Name for the properties tab in scenario dialog', type: 'string', default: 'Scenario Options' },
+    ],
+    buildTemplate: (p) => ({
+      tag: 'VASSAL.build.module.properties.ScenarioPropertiesOptionTab',
+      attributes: {
+        name: String(p.tabName ?? 'Scenario Options'),
+      },
+      children: [],
+    }),
+  },
+
+  {
+    id: 'mat-cargo',
+    name: 'Mat & Cargo (3.6)',
+    description: 'Pieces as surfaces for other pieces. Cargo snaps to the Mat and moves with it — carriers, transports, airbases.',
+    longDescription: 'Only 66 prototypes in the entire 562-module corpus use Mat/MatCargo. ' +
+      'This is a VASSAL 3.6 feature that most designers don\'t know exists. Perfect for ' +
+      'carrier groups, transport aircraft with loads, or any "container" piece concept.',
+    category: 'advanced',
+    target: 'prototypes',
+    applicableTo: ['any'],
+    prevalence: 1,
+    vassalVersionRequired: '3.6',
+    detectTraitId: 'mat',
+    params: [
+      { id: 'matName', label: 'Mat Name', description: 'Property name for this mat', type: 'string', default: 'Carrier' },
+    ],
+    buildTemplate: (p) => `mat;${p.matName ?? 'Carrier'};`,
   },
 ];
 
