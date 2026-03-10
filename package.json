@@ -12,7 +12,15 @@
     "test:run": "vitest run",
     "lint": "eslint src/",
     "generate:vmod": "tsx src/core/cli.ts",
-    "extract:modules": "tsx src/tools/extract-module-metadata.ts"
+    "extract:modules": "tsx src/tools/extract-module-metadata.ts",
+    "scrape:index": "tsx src/tools/scrape-module-library.ts",
+    "corpus:run": "tsx src/tools/download-and-extract.ts",
+    "corpus:export": "tsx src/tools/export-catalog-json.ts",
+    "corpus:analyze": "tsx src/tools/analyze-corpus.ts",
+    "corpus:reprocess": "tsx src/tools/download-and-extract.ts --reprocess",
+    "corpus:classify": "tsx src/tools/semantic-classifier.ts",
+    "corpus:analyze-deep": "tsx src/tools/analyze-deep.ts --all",
+    "corpus:report": "tsx src/tools/generate-report.ts"
   },
   "keywords": [
     "vassal",
@@ -38,7 +46,10 @@
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vite": "^7.3.1",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "@types/better-sqlite3": "^7.6.13",
+    "better-sqlite3": "^12.6.2",
+    "playwright": "^1.58.2"
   },
   "dependencies": {
     "@types/react": "^19.2.14",

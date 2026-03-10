@@ -16,7 +16,7 @@ This is a web-based, menu-driven tool for creating VASSAL game engine modules (.
 - **Language:** TypeScript throughout (type safety is critical for the complex XML schema)
 - **Build:** Vite (frontend), tsx/node (backend)
 - **Testing:** Vitest
-- **Module Output:** ZIP generation via `archiver` or `jszip` npm package
+- **Module Output:** ZIP generation via `jszip` npm package
 
 ### Why This Stack
 - JavaScript/TypeScript has excellent ZIP handling libraries for generating .vmod files
@@ -29,8 +29,9 @@ This is a web-based, menu-driven tool for creating VASSAL game engine modules (.
 
 - **No Java dependency** — we generate files that VASSAL's Java runtime reads, but our tool is 100% web-based
 - **Schema-driven UI** — A TypeScript schema registry defines every VASSAL component, its attributes, allowed children, and defaults. The UI is generated from this schema.
-- **Wizard-style flow** — Users progress through: Game Info → Map Setup → Grid Configuration → Piece Definition → Game Logic → Charts/Tables → Package & Download
+- **Feature Catalog approach** — Phase 2 (Module Modder) uses a curated catalog of standardized VASSAL features that users can add to existing modules. Each feature has a template builder, parameter UI, and automatic detection of whether the module already has it.
 - **Best-practices-first** — Templates encode patterns from the best existing modules, so users start with good defaults
+- **Wizard-style flow (Phase 3)** — Future module-from-scratch builder will use: Game Info → Map Setup → Grid Configuration → Piece Definition → Game Logic → Charts/Tables → Package & Download
 
 ---
 
@@ -57,7 +58,7 @@ help/             — Optional HTML help files
   <VassalVersion>3.7.5</VassalVersion>
   <dateSaved>1701389383564</dateSaved>
   <description>Module description here</description>
-  <n>Module Name</n>
+  <name>Module Name</name>  <!-- Some modules use <n> instead of <name>; our parser handles both -->
 </data>
 ```
 
@@ -181,9 +182,7 @@ These are the serialization IDs used in buildFile.xml:
 ### Trait Serialization (SequenceEncoder)
 Traits serialize as semicolon-delimited strings: `[TraitID][encoded params]`
 Parameters use VASSAL's SequenceEncoder with backslash escaping and comma/semicolon delimiters.
-**Porting the SequenceEncoder to TypeScript is Phase 1, Task 1.**
-
-Source file: `vassal-app/src/main/java/VASSAL/tools/SequenceEncoder.java`
+The SequenceEncoder has been ported to TypeScript (see `src/core/sequence-encoder.ts`, 41 tests).
 
 ### Trait Order Best Practices
 - RestrictCommands / Restricted → near OUTSIDE (intercept commands first)
@@ -271,15 +270,15 @@ Common wargame patterns:
 The first user-facing feature: modify existing .vmod modules with enhancements.
 
 **Core Flow:**
-1. **Import** — User uploads a .vmod → parse buildFile.xml into ComponentNode tree
-2. **Analyze** — Compare module against best-practices checklist, surface smart suggestions
-3. **Modify** — Full add/modify/remove UI with dependency warnings
-4. **Save** — Output with mod indicator in filename + embedded mod-manifest.json
+1. **Import** — User uploads a .vmod → parse buildFile.xml into ComponentNode tree, store images/assets server-side keyed by sessionId
+2. **Browse Feature Catalog** — Curated list of standardized VASSAL features (17 currently), each with auto-detection of whether the module already has it. Features are categorized (map-enhancement, piece-enhancement, dice-and-randomness, etc.) and show prevalence stats.
+3. **Add Features** — User configures parameters and adds features. UI distinguishes "✓ Present" (already in original module) vs "⊕ To be added" (queued this session).
+4. **Save** — Output modded .vmod with preserved images, modded suffix in name/version, and embedded mod-manifest.json
 
-**Smart Suggestions System:**
-- Detect what the module already has vs. what best-practice modules include
-- Surface actionable recommendations: "This module has no movement trails — add them?"
-- Rank suggestions by impact and ease of implementation
+**Feature Catalog** (`src/schema/feature-catalog.ts`):
+- Each feature defines: id, name, description, category, target (module/each-map/first-map/prototype), detectTags, parameters with defaults, and a `buildTemplate()` function
+- `moduleHasFeature()` scans the ComponentNode tree for detectTags to show what's already present
+- Current features include: GlobalMap (minimap), Zoomer, CounterDetailViewer, Flare, HighlightLastMoved, Inventory, TurnTracker, DiceButton, PlayerRoster, and more
 
 **Mod Manifest (mod-manifest.json inside .vmod):**
 ```json
@@ -300,12 +299,12 @@ The first user-facing feature: modify existing .vmod modules with enhancements.
 **Distribution Guidance:** Personal use focus. Clear messaging about respecting original designers. Do not upload modded modules to vassalengine.org library without permission.
 
 **Sub-tasks:**
-1. .vmod reader/importer (XML parser → ComponentNode tree)
-2. Module analyzer (best-practices checklist engine)
-3. React UI for import → analyze → modify → save flow
-4. Trait injector (add traits to existing piece definitions/prototypes)
-5. Mod manifest generator
-6. Output packager (re-ZIP with modifications)
+1. ✅ .vmod reader/importer (XML parser → ComponentNode tree) — `src/core/xml-parser.ts`, `src/core/vmod-reader.ts`
+2. ⏸️ Module analyzer (deprioritized — replaced by Feature Catalog approach) — `src/core/module-analyzer.ts` exists but not central to UX
+3. ✅ React UI for import → feature catalog → add → save flow — `src/client/App.tsx`, `src/client/components/`
+4. 🔧 Trait injector (add traits to existing piece definitions/prototypes) — IN PROGRESS, currently shows "coming soon" alert for prototype-level features
+5. ✅ Mod manifest generator — embedded in `src/core/vmod-writer.ts`
+6. ✅ Output packager (re-ZIP with modifications, images preserved via server-side session store) — `src/server/index.ts`
 7. In-module "Mod Settings" toolbar — inject a settings button into modded modules so users can adjust configurable feature params (e.g. minimap scale) at runtime without re-modding. Use GlobalProperty + DoActionButton.
 8. Toolbar Button Config UI — visual editor for toolbar button order, icon upload, and sizing. Addresses issues with injected buttons (e.g. minimap) appearing too small or overlapping existing buttons. Should allow reordering, custom icons, and consistent sizing across all toolbar items.
 9. Auto-tag pieces from PieceWindow structure — Walk the PieceWindow widget tree (TabWidget/PanelWidget/ListWidget nesting) and infer Marker traits from entryName attributes (e.g. "Russians" → mark;Side;RU, "1 MR BTG" → mark;Formation;1 MR BTG). Inject mark; traits into each PieceSlot so the Inventory window can group by Side/Formation/UnitType. Prerequisite for making Inventory useful on modules that lack Marker traits (which is most of them).
@@ -320,8 +319,8 @@ The first user-facing feature: modify existing .vmod modules with enhancements.
 - Common wargame type starters (hex, CDG, block, P2P)
 
 ### Phase 5: Module Analysis & Pattern Extraction
-- Download and analyze 10-20 high-quality modules
-- Extract patterns into templates and smart suggestion rules
+- ✅ Downloaded and extracted 65 modules from vassalengine.org (corpus in `vassal-reference/`)
+- Extract patterns into templates and feature catalog rules
 
 ---
 

@@ -1,0 +1,16 @@
+{
+  "startedAt": "2026-03-09T15:24:04.302Z",
+  "lastBatchAt": "2026-03-09T16:29:08.379Z",
+  "totalProcessed": 562,
+  "totalErrors": 2,
+  "errors": [
+    {
+      "filename": "StormofSteel-Ju87_V1.0.vmod",
+      "error": "HTTP 404: Not Found"
+    },
+    {
+      "filename": "StormofSteel-Ju87_V1.0.vmod",
+      "error": "HTTP 404: Not Found"
+    }
+  ]
+}

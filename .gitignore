@@ -32,6 +32,14 @@ coverage/
 # TypeScript
 *.tsbuildinfo
 
+# Corpus pipeline temp files
+data/vmods-tmp/
+data/module-corpus.db
+data/module-corpus.db-wal
+data/module-corpus.db-shm
+data/corpus.db
+data/debug-search-page.*
+
 # Logs
 *.log
 npm-debug.log*

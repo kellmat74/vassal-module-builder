@@ -29,6 +29,8 @@ export interface ModuleFingerprint {
   version: string;
   vassalVersion: string;
   description: string;
+  publisher?: string;
+  sourceUrl?: string;
 
   // Size info
   fileSizeBytes: number;
@@ -194,7 +196,7 @@ function hasTraitInPrototypes(node: ComponentNode, traitId: string): boolean {
 
 // ── Main extraction ─────────────────────────────────────────────────────
 
-async function extractOne(filePath: string): Promise<ModuleFingerprint> {
+export async function extractOne(filePath: string): Promise<ModuleFingerprint> {
   const errors: string[] = [];
   const fileSize = statSync(filePath).size;
   const buffer = readFileSync(filePath);
@@ -209,7 +211,7 @@ async function extractOne(filePath: string): Promise<ModuleFingerprint> {
       const parser = new XMLParser({ ignoreAttributes: false, parseTagValue: false });
       const parsed = parser.parse(xml);
       const data = parsed.data ?? parsed;
-      name = String(data.n ?? '');
+      name = String(data.name ?? data.n ?? '');
       version = String(data.version ?? '');
       vassalVersion = String(data.VassalVersion ?? '');
       description = String(data.description ?? '');

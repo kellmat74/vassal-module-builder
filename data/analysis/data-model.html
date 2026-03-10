@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>VASSAL Corpus — Data Model Diagram</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #c9d1d9; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; overflow: auto; }
+  h1 { text-align: center; padding: 24px 0 4px; font-size: 28px; color: #58a6ff; }
+  .subtitle { text-align: center; color: #8b949e; font-size: 14px; margin-bottom: 20px; }
+  .legend { display: flex; justify-content: center; gap: 32px; margin-bottom: 16px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .legend-swatch { width: 16px; height: 16px; border-radius: 3px; }
+
+  svg { display: block; margin: 0 auto; }
+
+  /* Table styles inside SVG foreignObject */
+  .tbl { border-collapse: collapse; width: 100%; font-size: 11px; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  .tbl-header { padding: 6px 10px; font-weight: 700; font-size: 12px; text-align: center; border-bottom: 2px solid rgba(255,255,255,0.15); letter-spacing: 0.5px; }
+  .tbl td { padding: 2px 8px; border-bottom: 1px solid rgba(255,255,255,0.05); white-space: nowrap; }
+  .tbl .col-name { color: #e6edf3; }
+  .tbl .col-type { color: #8b949e; text-align: right; font-size: 10px; }
+  .tbl .pk { color: #f0c040; }
+  .tbl .fk { color: #58a6ff; }
+  .tbl .idx { color: #bc8cff; font-size: 9px; }
+
+  /* Layer colors */
+  .layer-legacy { background: #1c2333; border: 1.5px solid #3b4252; }
+  .layer-1 { background: #162216; border: 1.5px solid #2ea04380; }
+  .layer-2 { background: #1a1a2e; border: 1.5px solid #6366f180; }
+  .layer-3 { background: #2a1a1a; border: 1.5px solid #f0883e80; }
+
+  .tbl-header.legacy { background: #3b4252; color: #d8dee9; }
+  .tbl-header.l1 { background: #238636; color: #fff; }
+  .tbl-header.l2 { background: #4f46e5; color: #fff; }
+  .tbl-header.l3 { background: #da3633; color: #fff; }
+</style>
+</head>
+<body>
+
+<h1>VASSAL Module Corpus — Data Model</h1>
+<p class="subtitle">Three-Layer Architecture: Raw → Structural → Semantic &nbsp;|&nbsp; 18 tables &nbsp;|&nbsp; SQLite (better-sqlite3)</p>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-swatch" style="background:#3b4252"></div> Legacy (Module Metadata)</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#238636"></div> Layer 1 — Raw Data</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#4f46e5"></div> Layer 2 — Structural Extraction</div>
+  <div class="legend-item"><div class="legend-swatch" style="background:#da3633"></div> Layer 3 — Semantic Normalization</div>
+  <div class="legend-item"><span style="color:#f0c040">🔑</span> Primary Key</div>
+  <div class="legend-item"><span style="color:#58a6ff">→</span> Foreign Key</div>
+</div>
+
+<svg width="1520" height="1360" viewBox="0 0 1520 1360">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3 L 0 6 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="arrow-orange" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3 L 0 6 z" fill="#f0883e"/>
+    </marker>
+    <marker id="arrow-green" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3 L 0 6 z" fill="#2ea043"/>
+    </marker>
+    <marker id="arrow-purple" viewBox="0 0 10 6" refX="10" refY="3" markerWidth="8" markerHeight="5" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 3 L 0 6 z" fill="#6366f1"/>
+    </marker>
+  </defs>
+
+  <!-- ═══ LAYER LABELS ═══ -->
+  <text x="760" y="38" text-anchor="middle" fill="#8b949e" font-size="11" font-style="italic">All tables reference modules(id) via module_id foreign key</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- CENTRAL TABLE: modules (Legacy) -->
+  <!-- ═══════════════════════════════════════════════════ -->
+  <foreignObject x="580" y="55" width="360" height="330">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-legacy" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header legacy">modules</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; filename</td><td class="col-type">TEXT UNIQUE</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; version</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; vassal_version</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; description</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; file_size_bytes</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; xml_size_bytes</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; image_count</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; prototype_count</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; piece_slot_count</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; publisher</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; source_url</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; page_description</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; contributors</td><td class="col-type">TEXT (JSON)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; extracted_at</td><td class="col-type">TEXT</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- ═══ LEGACY SATELLITES ═══ -->
+  <!-- module_features -->
+  <foreignObject x="20" y="55" width="240" height="105">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-legacy" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header legacy">module_features</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; feature_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; present</td><td class="col-type">INTEGER</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- trait_counts -->
+  <foreignObject x="20" y="175" width="240" height="105">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-legacy" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header legacy">trait_counts</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; trait_id</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; count</td><td class="col-type">INTEGER</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- top_level_components -->
+  <foreignObject x="280" y="55" width="280" height="105">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-legacy" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header legacy">top_level_components</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; component_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; position</td><td class="col-type">INTEGER</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- maps -->
+  <foreignObject x="280" y="175" width="280" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-legacy" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header legacy">maps</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; map_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; grid_type</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; board_count</td><td class="col-type">INTEGER</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- grid_types -->
+  <foreignObject x="280" y="310" width="280" height="75">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-legacy" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header legacy">grid_types</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; grid_type</td><td class="col-type">TEXT</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- Legacy FK arrows to modules -->
+  <line x1="260" y1="100" x2="578" y2="100" stroke="#3b4252" stroke-width="1.5" marker-end="url(#arrow)" opacity="0.6"/>
+  <line x1="260" y1="220" x2="420" y2="220" stroke="#3b4252" stroke-width="1.5" opacity="0.6"/>
+  <line x1="420" y1="100" x2="578" y2="130" stroke="#3b4252" stroke-width="1.5" opacity="0.6"/>
+  <line x1="420" y1="235" x2="578" y2="160" stroke="#3b4252" stroke-width="1.5" opacity="0.6"/>
+  <line x1="420" y1="345" x2="578" y2="200" stroke="#3b4252" stroke-width="1.5" opacity="0.6"/>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- LAYER 1: RAW DATA (Green) -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <!-- Layer 1 header -->
+  <rect x="15" y="420" width="730" height="32" rx="4" fill="#238636" opacity="0.15"/>
+  <text x="380" y="442" text-anchor="middle" fill="#2ea043" font-size="13" font-weight="bold">LAYER 1 — RAW DATA (preserved forever, enables future re-analysis)</text>
+
+  <!-- raw_xml -->
+  <foreignObject x="20" y="462" width="240" height="72">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-1" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l1">raw_xml</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span><span class="fk">→</span> module_id</td><td class="col-type">INTEGER PK FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; xml_text</td><td class="col-type">TEXT NOT NULL</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- trait_chains -->
+  <foreignObject x="280" y="462" width="280" height="155">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-1" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l1">trait_chains</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; source_type</td><td class="col-type">TEXT (proto|piece)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; source_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; position</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; trait_id</td><td class="col-type">TEXT <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; params_json</td><td class="col-type">TEXT (JSON[])</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- expressions -->
+  <foreignObject x="20" y="548" width="240" height="175">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-1" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l1">expressions</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; context</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; source_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; expression_text</td><td class="col-type">TEXT NOT NULL</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; expr_type</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; functions_used</td><td class="col-type">TEXT (JSON[])</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; properties_referenced</td><td class="col-type">TEXT (JSON[])</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- properties -->
+  <foreignObject x="580" y="462" width="280" height="155">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-1" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l1">properties</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; name</td><td class="col-type">TEXT NOT NULL</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; scope</td><td class="col-type">TEXT (mod|map|zone|piece)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; prop_type</td><td class="col-type">TEXT (mark|dyn|calc|glob)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; initial_value</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; expression</td><td class="col-type">TEXT</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- gkc_definitions -->
+  <foreignObject x="580" y="630" width="280" height="140">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-1" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l1">gkc_definitions</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; level</td><td class="col-type">TEXT (mod|map|piece)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; target_expression</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; key_command</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; params_json</td><td class="col-type">TEXT (JSON)</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- Layer 1 FK arrows -->
+  <path d="M 140 462 L 140 420 L 760 420 L 760 385" stroke="#2ea043" stroke-width="1.5" fill="none" marker-end="url(#arrow-green)" opacity="0.5"/>
+  <path d="M 420 462 L 420 420 L 760 420 L 760 385" stroke="#2ea043" stroke-width="1.5" fill="none" opacity="0.5" stroke-dasharray="4,4"/>
+  <path d="M 720 462 L 720 420 L 760 420" stroke="#2ea043" stroke-width="1.5" fill="none" opacity="0.5" stroke-dasharray="4,4"/>
+  <text x="762" y="408" fill="#2ea043" font-size="10" font-style="italic">all → modules.id</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- LAYER 2: STRUCTURAL (Purple) -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <rect x="15" y="795" width="730" height="32" rx="4" fill="#4f46e5" opacity="0.15"/>
+  <text x="380" y="817" text-anchor="middle" fill="#6366f1" font-size="13" font-weight="bold">LAYER 2 — STRUCTURAL EXTRACTION (normalized components &amp; relationships)</text>
+
+  <!-- prototype_definitions -->
+  <foreignObject x="20" y="837" width="280" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-2" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l2">prototype_definitions</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK (CPK)</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> name</td><td class="col-type">TEXT (CPK)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; trait_chain_json</td><td class="col-type">TEXT (JSON[])</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; trait_count</td><td class="col-type">INTEGER</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- piece_prototypes -->
+  <foreignObject x="320" y="837" width="260" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-2" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l2">piece_prototypes</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; piece_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; prototype_name</td><td class="col-type">TEXT</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- piece_organization -->
+  <foreignObject x="20" y="972" width="260" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-2" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l2">piece_organization</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; widget_path</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; entry_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; piece_count</td><td class="col-type">INTEGER</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- component_tree -->
+  <foreignObject x="320" y="972" width="280" height="170">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-2" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l2">component_tree</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; node_id</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; parent_id</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; tag</td><td class="col-type">TEXT (full Java class)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; short_tag</td><td class="col-type">TEXT <span class="idx">IDX</span></td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; depth</td><td class="col-type">INTEGER</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; attributes_json</td><td class="col-type">TEXT (JSON{})</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- L2 relationship arrow: piece_prototypes → prototype_definitions -->
+  <line x1="320" y1="897" x2="300" y2="897" stroke="#6366f1" stroke-width="1.5" stroke-dasharray="6,3" marker-end="url(#arrow-purple)" opacity="0.7"/>
+  <text x="290" y="917" fill="#6366f1" font-size="9" text-anchor="end">prototype_name → name</text>
+
+  <!-- ═══════════════════════════════════════════════════ -->
+  <!-- LAYER 3: SEMANTIC (Red/Orange) -->
+  <!-- ═══════════════════════════════════════════════════ -->
+
+  <rect x="775" y="795" width="730" height="32" rx="4" fill="#da3633" opacity="0.15"/>
+  <text x="1140" y="817" text-anchor="middle" fill="#f0883e" font-size="13" font-weight="bold">LAYER 3 — SEMANTIC NORMALIZATION (game concepts → implementation patterns)</text>
+
+  <!-- game_concepts -->
+  <foreignObject x="780" y="837" width="280" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-3" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l3">game_concepts</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; name</td><td class="col-type">TEXT UNIQUE</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; category</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; description</td><td class="col-type">TEXT</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- concept_taxonomy -->
+  <foreignObject x="780" y="972" width="280" height="88">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-3" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l3">concept_taxonomy</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> parent_id</td><td class="col-type">INTEGER FK (CPK)</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> child_id</td><td class="col-type">INTEGER FK (CPK)</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- implementation_patterns -->
+  <foreignObject x="1080" y="837" width="300" height="175">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-3" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l3">implementation_patterns</td></tr>
+        <tr><td class="col-name"><span class="pk">🔑</span> id</td><td class="col-type">INTEGER PK</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> concept_id</td><td class="col-type">INTEGER FK</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; pattern_name</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; description</td><td class="col-type">TEXT</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; signature_json</td><td class="col-type">TEXT NOT NULL</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; quality_score</td><td class="col-type">INTEGER (1-5)</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> example_module_id</td><td class="col-type">INTEGER FK</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- module_concepts (junction) -->
+  <foreignObject x="1080" y="1040" width="300" height="145">
+    <div xmlns="http://www.w3.org/1999/xhtml" class="layer-3" style="border-radius:8px; overflow:hidden;">
+      <table class="tbl">
+        <tr><td colspan="2" class="tbl-header l3">module_concepts</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> module_id</td><td class="col-type">INTEGER FK (CPK)</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> concept_id</td><td class="col-type">INTEGER FK (CPK)</td></tr>
+        <tr><td class="col-name"><span class="fk">→</span> pattern_id</td><td class="col-type">INTEGER FK (CPK)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; confidence</td><td class="col-type">REAL (0.0-1.0)</td></tr>
+        <tr><td class="col-name">&nbsp;&nbsp; evidence_json</td><td class="col-type">TEXT (JSON)</td></tr>
+      </table>
+    </div>
+  </foreignObject>
+
+  <!-- L3 relationship arrows -->
+  <!-- game_concepts → concept_taxonomy -->
+  <line x1="920" y1="957" x2="920" y2="970" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+  <text x="928" y="966" fill="#f0883e" font-size="9">parent_id / child_id</text>
+
+  <!-- game_concepts → implementation_patterns -->
+  <line x1="1060" y1="897" x2="1078" y2="897" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+
+  <!-- implementation_patterns → module_concepts -->
+  <line x1="1230" y1="1012" x2="1230" y2="1038" stroke="#f0883e" stroke-width="1.5" marker-end="url(#arrow-orange)" opacity="0.7"/>
+
+  <!-- game_concepts → module_concepts -->
+  <path d="M 920 957 L 920 1110 L 1078 1110" stroke="#f0883e" stroke-width="1.5" fill="none" marker-end="url(#arrow-orange)" opacity="0.5" stroke-dasharray="6,3"/>
+
+  <!-- module_concepts → modules (cross-layer) -->
+  <path d="M 1380 1110 L 1460 1110 L 1460 55 L 760 55 L 760 53" stroke="#58a6ff" stroke-width="2" fill="none" marker-end="url(#arrow)" opacity="0.35" stroke-dasharray="8,4"/>
+  <text x="1462" y="580" fill="#58a6ff" font-size="10" writing-mode="tb" font-style="italic">module_concepts.module_id → modules.id</text>
+
+  <!-- implementation_patterns.example_module_id → modules -->
+  <path d="M 1380 970 L 1430 970 L 1430 55 L 942 55" stroke="#58a6ff" stroke-width="1" fill="none" opacity="0.2" stroke-dasharray="4,4"/>
+
+  <!-- ═══ DATA FLOW ANNOTATION ═══ -->
+  <rect x="775" y="462" width="460" height="295" rx="8" fill="none" stroke="#8b949e" stroke-width="1" stroke-dasharray="8,4" opacity="0.3"/>
+  <text x="1005" y="486" text-anchor="middle" fill="#8b949e" font-size="12" font-weight="bold">Pattern Signature Schema</text>
+  <text x="795" y="508" fill="#8b949e" font-size="11" font-family="monospace">
+    <tspan x="795" dy="0">{ all_of: Rule[], any_of: Rule[],</tspan>
+    <tspan x="795" dy="16">  none_of: Rule[] }</tspan>
+    <tspan x="795" dy="24">─────────────────────────────</tspan>
+    <tspan x="795" dy="18">Rule types:</tspan>
+    <tspan x="795" dy="16">  • trait_exists { trait_id }</tspan>
+    <tspan x="795" dy="16">  • params_match { trait_id, idx, val }</tspan>
+    <tspan x="795" dy="16">  • component_exists { short_tag }</tspan>
+    <tspan x="795" dy="16">  • property_match { name, scope }</tspan>
+    <tspan x="795" dy="16">  • expression_match { pattern }</tspan>
+    <tspan x="795" dy="24">─────────────────────────────</tspan>
+    <tspan x="795" dy="18">Stored in: implementation_patterns</tspan>
+    <tspan x="795" dy="14">              .signature_json</tspan>
+    <tspan x="795" dy="24">─────────────────────────────</tspan>
+    <tspan x="795" dy="18" fill="#2ea043">Matched against Layer 1 &amp; 2 data</tspan>
+    <tspan x="795" dy="14" fill="#2ea043">to populate module_concepts</tspan>
+  </text>
+
+  <!-- ═══ STATS BOX ═══ -->
+  <rect x="775" y="55" width="460" height="315" rx="8" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="1005" y="82" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="bold">Corpus Statistics (562 modules)</text>
+  <text x="795" y="110" fill="#c9d1d9" font-size="12" font-family="monospace">
+    <tspan x="795" dy="0">┌─────────────────────────────────────┐</tspan>
+    <tspan x="795" dy="18">│ 562 modules across 5 publishers     │</tspan>
+    <tspan x="795" dy="18">│ 562 raw XML documents stored         │</tspan>
+    <tspan x="795" dy="18">│  24,534 prototype definitions        │</tspan>
+    <tspan x="795" dy="18">│  71,218 expressions extracted        │</tspan>
+    <tspan x="795" dy="18">│  28,926 concept↔pattern matches      │</tspan>
+    <tspan x="795" dy="18">│      45 game concepts defined        │</tspan>
+    <tspan x="795" dy="18">│      38 implementation patterns      │</tspan>
+    <tspan x="795" dy="18">│      90 VASSAL versions represented  │</tspan>
+    <tspan x="795" dy="18">├─────────────────────────────────────┤</tspan>
+    <tspan x="795" dy="18">│ Publishers:                          │</tspan>
+    <tspan x="795" dy="18">│   GMT Games ............... 244      │</tspan>
+    <tspan x="795" dy="18">│   Compass Games ........... 157      │</tspan>
+    <tspan x="795" dy="18">│   Multi-Man Publishing .... 118      │</tspan>
+    <tspan x="795" dy="18">│   Decision Games ..........  30      │</tspan>
+    <tspan x="795" dy="18">│   VUCA Simulations ........  14      │</tspan>
+    <tspan x="795" dy="18">└─────────────────────────────────────┘</tspan>
+  </text>
+
+  <!-- ═══ BOTTOM ANNOTATION ═══ -->
+  <text x="760" y="1320" text-anchor="middle" fill="#484f58" font-size="11">
+    vassal-module-builder  •  corpus-db.ts  •  Generated 2026-03-09
+  </text>
+
+</svg>
+
+</body>
+</html>
